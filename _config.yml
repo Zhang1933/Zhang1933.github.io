@@ -1,5 +1,4 @@
 # Welcome to Jekyll!
-#
 # This config file is meant for settings that affect your whole blog, values
 # which you are expected to set up once and rarely need to edit after that.
 # For technical reasons, this file is *NOT* reloaded automatically when you use
@@ -13,7 +12,8 @@
 
 
 ## !USE TEXT THEME
-theme: jekyll-text-theme # Gem-based Jekyll Themes
+# theme: jekyll-text-theme # Gem-based Jekyll Themes
+remote_theme: kitian616/jekyll-TeXt-theme # Jekyll Remote Theme, see https://github.com/benbalter/jekyll-remote-theme for more information.
 
 ## => Site Settings
 ##############################
@@ -224,3 +224,4 @@ plugins:
   - jekyll-paginate
   - jekyll-sitemap
   - jemoji
+  - jekyll-remote-theme
