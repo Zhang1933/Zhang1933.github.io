@@ -28,4 +28,3 @@ key: page-about
 
 施工中。。。
 
-![assets/images/Strange.png](assets/images/AboutStrange.jpg)
