@@ -1048,6 +1048,8 @@ add[26]: LC_TIME=en_US.UTF-8
 add[27]: _=./number
 ...
 
+```
+
 序号是第9个的样子,用gdb看一下地址shellcode指针地。
 
 ```bash
