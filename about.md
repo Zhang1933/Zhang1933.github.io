@@ -26,5 +26,7 @@ titles:
 key: page-about
 ---
 
+Watch one,do one,teach one.
+
 施工中。。。
 
