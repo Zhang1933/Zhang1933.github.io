@@ -40,7 +40,7 @@ tags: [linux,glibc,源码分析]
 根据[12 C Preprocessor Macros](https://sourceware.org/gdb/current/onlinedocs/gdb/Macros.html#FOOT14),我们现在编译带调试信息的库(关键是宏扩展)：
 
 ```bash
-$ ../glibc-2.31/configure --prefix=/home/z1933/Downloads/glibc-install/   CFLAGS='-gdwarf-2 -g3 -O3'
+$ ../glibc-2.31/configure --prefix=/home/z1933/Downloads/glibc-install/   CFLAGS='-gdwarf-2 -g3 -O'
 $ make all && make install
 ```
 
