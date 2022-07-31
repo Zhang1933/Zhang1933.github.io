@@ -1,6 +1,6 @@
 ---
 
-title: pwnable.tw 题解系列 - Part 1
+title: pwnable.tw 题解系列 - Start
 lang: zh
 layout: article
 show_subscribe: false
@@ -8,7 +8,7 @@ tags: [ctf,pwn]
 
 ---
 
-跟我一起用热门渗透测试框架 [metasploit](https://www.metasploit.com/) rock it！
+跟我一起用热门渗透测试框架 [metasploit](https://www.metasploit.com/) rock ！
 
 题目链接: [Start 100 pts](https://pwnable.tw/challenge/#1) 
 
