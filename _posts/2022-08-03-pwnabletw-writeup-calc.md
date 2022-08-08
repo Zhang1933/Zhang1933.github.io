@@ -242,7 +242,12 @@ if ( symbol == '+' )
 
 但注意写的值不能溢出 int ，因为 `if ( numstr2int > 0 )` 这一个判断。
 
-因为开了 nx 保护，所以在栈上写 gadgets 进行 ROP 攻击。 下面用的 gadgets 是用 [ROPgadget](https://github.com/JonathanSalwan/ROPgadget) 工具生成的
+因为开了 nx 保护，所以在栈上写 gadgets 进行 ROP 攻击。 下面用的 gadgets 是用 [ROPgadget](https://github.com/JonathanSalwan/ROPgadget) 工具生成的。
+
+```
+z1933@1933:~/workplace/vbshare/ctf 
+$ ROPgadget --binary ./calc --ropchain
+```
 
 ## exploit：
 
