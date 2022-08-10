@@ -1,6 +1,6 @@
 ---
 
-title: pwnable.tw 题解 - calc
+title: pwnable.tw WriteUp - calc
 lang: zh
 layout: article
 show_subscribe: false

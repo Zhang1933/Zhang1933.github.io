@@ -1,6 +1,6 @@
 ---
 
-title: pwnable.tw 题解系列 - Start
+title: pwnable.tw WriteUp - Start
 lang: zh
 layout: article
 show_subscribe: false
