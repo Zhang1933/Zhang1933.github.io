@@ -1,6 +1,6 @@
 ---
 
-title: pwnable.tw WriteUp - calc
+title: pwnable.tw writeup - calc
 lang: zh
 layout: article
 show_subscribe: false

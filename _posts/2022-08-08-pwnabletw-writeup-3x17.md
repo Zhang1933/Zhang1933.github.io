@@ -1,6 +1,6 @@
 ---
 
-title: pwnable.tw WriteUp - 3x17
+title: pwnable.tw writeup - 3x17
 lang: zh
 layout: article
 show_subscribe: false

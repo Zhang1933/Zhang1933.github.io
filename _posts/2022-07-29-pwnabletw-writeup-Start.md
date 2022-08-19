@@ -1,6 +1,6 @@
 ---
 
-title: pwnable.tw WriteUp - Start
+title: pwnable.tw writeup - Start
 lang: zh
 layout: article
 show_subscribe: false
