@@ -10,6 +10,8 @@ tags: [ctf,pwn]
 
 ## 关键函数分析
 
+程序没有金丝雀，smash the stack!
+
 **main 函数**
 
 ```cpp
