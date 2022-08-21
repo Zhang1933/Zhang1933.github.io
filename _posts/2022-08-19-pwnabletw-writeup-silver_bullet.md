@@ -229,7 +229,7 @@ Your choice :
 
 puts 函数返回地址写 `main` ，这样又可以写一次栈。
 
-打印完了之后执行 `main` 函数,这是我们拿到了 puts 函数在内存中的位置，减去偏移拿到 libc 起始地址。 于是可以拿到动态库中 system ， `/bin/sh` 字符串地址。在第二次 main 函数的栈上写入这些地址和参数， main 返回到 system 函数中。
+打印完了之后执行 `main` 函数,这是我们拿到了 puts 函数在内存中的位置，减去偏移拿到 libc 起始地址。 于是可以拿到动态库中 system ， `/bin/sh` 字符串地址。在第二次 main 函数的返回地址上写入这 system 地址和参数， 让 main 返回到 system 函数中。
 
 
 ## exploit
