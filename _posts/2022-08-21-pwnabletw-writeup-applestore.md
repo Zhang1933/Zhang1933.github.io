@@ -10,6 +10,8 @@ tags: [ctf,pwn]
 
 主要参考了这篇文章: [pwnable.tw - applestore](https://blog.srikavin.me/posts/pwnable-tw-applestore/) 。
 
+main 函数设置了信号，到时之后程序自动退出，可以把 `call    _alarm` patch 掉。
+
 ## 关键函数
 
 程序没有去符号，分析起来还是比较容易的。
