@@ -89,7 +89,6 @@ name 就是程序一开始输入 name 时的固定地址。
 #!/usr/bin/env python3
 
 from pwn import *
-from sortedcontainers.sortedlist import add
 
 HOST='chall.pwnable.tw'
 PORT=10207
